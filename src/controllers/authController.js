@@ -138,20 +138,21 @@ export const refresh = async (req, res) => {
   }
 };
 
-// export const logout = async (req, res) => {
-//   try {
-//     const cookies = req.cookies;
-//     if (!cookies?.jwt) return res.sendStatus(204); // No content to send back, they are already logged out
-
-//     // Clear the cookie
-//     res.clearCookie("jwt", {
-//       httpOnly: true,
-//       sameSite: "strict",
-//       secure: process.env.NODE_ENV === "production",
-//     });
-
-//     res.status(200).json({ success: true, data: "Logged out successfully" });
-//   } catch (error) {
-//     res.status(500).json({ success: false, error: error.message });
-//   }
-// };
+export const logoutUser = async (req, res) => {
+  try {
+    const cookie = req.cookies;
+    if (!cookie?.jwt) {
+      return res
+        .status(401)
+        .json({ success: false, error: "Unauthorized - No Refresh Token" });
+    }
+    res.clearCookie("jwt", {
+      httpsOnly: true,
+      sameSite: "strict",
+      secure: process.env.NODE_ENV,
+    });
+    res.status(200).json({ success: true, data: "Logged out successfully" });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
