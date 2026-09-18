@@ -1,8 +1,10 @@
 import cookieParser from "cookie-parser";
 import "dotenv/config";
 import express from "express";
-import apiRoutes from "./routes/authRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
+import postRoutes from "./routes/postRoute.js";
 import { connectDB } from "./config/db.js";
+import { errorHandler } from "./middlewares/errorHandler.js";
 
 connectDB();
 const app = express();
@@ -15,7 +17,11 @@ const MONGO_URI = process.env.MONGO_URI;
 console.log("PORT:", PORT);
 console.log("MONGO_URI:", MONGO_URI);
 
-app.use("/api/auth", apiRoutes);
+app.use("/api/auth", authRoutes);
+app.use("/api/posts", postRoutes);
+
+// Add the error handler right here, AFTER all routes
+app.use(errorHandler);
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
