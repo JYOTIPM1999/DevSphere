@@ -3,6 +3,7 @@ import "dotenv/config";
 import express from "express";
 import authRoutes from "./routes/authRoutes.js";
 import postRoutes from "./routes/postRoute.js";
+import userRoutes from "./routes/userRoutes.js";
 import { connectDB } from "./config/db.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 
@@ -19,6 +20,7 @@ console.log("MONGO_URI:", MONGO_URI);
 
 app.use("/api/auth", authRoutes);
 app.use("/api/posts", postRoutes);
+app.use("/api/users", userRoutes);
 
 // Add the error handler right here, AFTER all routes
 app.use(errorHandler);
