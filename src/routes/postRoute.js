@@ -12,9 +12,13 @@ import {
   getComments,
   toggleLike,
 } from "../controllers/interactionController.js";
+import { upload } from "../middlewares/uploadMiddlware.js";
 
 const router = express.Router();
-router.route("/").get(protect, getPosts).post(protect, createPost);
+router
+  .route("/")
+  .get(protect, getPosts)
+  .post(protect, upload.single("image"), createPost);
 router
   .route("/:id")
   .get(protect, getPost)

@@ -5,9 +5,16 @@ import Like from "../models/likeModel.js";
 import Comment from "../models/commentModel.js";
 
 export const createPost = catchAsync(async (req, res) => {
-  const validatePost = postSchema.parse(req.body);
+  const validatedData = postSchema.parse(req.body);
+
+  let imageUrl = "";
+  if (req.file) {
+    imageUrl = req.file.path;
+  }
+
   const post = await Post.create({
-    ...validatePost,
+    content: validatedData.content,
+    imageUrl: imageUrl,
     author: req.user?._id,
   });
   res.status(201).json({ sucess: true, data: post });

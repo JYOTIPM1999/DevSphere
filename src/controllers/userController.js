@@ -1,12 +1,17 @@
-import userModel from "../models/userModel.js";
+import User from "../models/userModel.js";
+import { catchAsync } from "../utils/catchAsync.js";
 
-export function getAllUsers(req, res) {
-  userModel
-    .find()
-    .then((users) => {
-      res.status(200).json(users);
-    })
-    .catch((err) => {
-      res.status(500).json({ error: "Error fetching users" });
-    });
-}
+export const uploadAvatar = catchAsync(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error("Please upload an image file");
+  }
+  const user = await User.findByIdAndUpdate(
+    req.user._id,
+    {
+      avatar: req.file.path,
+    },
+    { new: true },
+  ).select("-passwordHash"); // dont send passwordHash to the frontend
+  res.status(200).json({ success: true, data: user });
+});
