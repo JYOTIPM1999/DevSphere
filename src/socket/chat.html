@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DevSphere Socket Test</title>
+    <!-- Import Socket.io Client -->
+    <script src="https://cdn.socket.io/4.7.2/socket.io.min.js"></script>
+    <style>
+      body {
+        font-family: sans-serif;
+        padding: 20px;
+        max-width: 600px;
+        margin: 0 auto;
+      }
+      .box {
+        border: 1px solid #ccc;
+        padding: 15px;
+        margin-bottom: 15px;
+        border-radius: 5px;
+      }
+      #chat-window {
+        height: 300px;
+        border: 1px solid #000;
+        overflow-y: auto;
+        padding: 10px;
+        margin-bottom: 10px;
+        background: #f9f9f9;
+      }
+      .msg {
+        margin-bottom: 8px;
+        padding: 8px;
+        background: #e1f5fe;
+        border-radius: 4px;
+      }
+      .system {
+        color: #888;
+        font-size: 0.9em;
+        font-style: italic;
+      }
+      input {
+        width: 100%;
+        padding: 8px;
+        margin-bottom: 10px;
+        box-sizing: border-box;
+      }
+      button {
+        padding: 10px 15px;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <h2>Live Chat Tester</h2>
+
+    <div class="box">
+      <h3>1. Connect</h3>
+      <input
+        type="text"
+        id="token"
+        placeholder="Paste Access Token here (without 'Bearer ')"
+      />
+      <button onclick="connectSocket()">Connect to Socket</button>
+      <span id="status" style="margin-left: 10px; color: red"
+        >Disconnected</span
+      >
+    </div>
+
+    <div class="box">
+      <h3>2. Chat</h3>
+      <div id="chat-window"></div>
+      <input type="text" id="receiverId" placeholder="Receiver User ID" />
+      <input type="text" id="message" placeholder="Type a message..." />
+      <button onclick="sendMessage()">Send Message</button>
+    </div>
+
+    <script>
+      let socket;
+
+      function connectSocket() {
+        const token = document.getElementById("token").value;
+        if (!token) return alert("Token required");
+
+        // Connect to your Express server
+        socket = io("http://localhost:3000", {
+          auth: { token: token },
+        });
+
+        socket.on("connect", () => {
+          document.getElementById("status").innerText =
+            "Connected! (Socket ID: " + socket.id + ")";
+          document.getElementById("status").style.color = "green";
+          appendMessage("System", "Connected successfully.", "system");
+        });
+
+        socket.on("connect_error", (err) => {
+          appendMessage("Error", err.message, "system");
+        });
+
+        socket.on("receive_message", (data) => {
+          appendMessage("Friend", data.content);
+        });
+
+        socket.on("user_online", (data) => {
+          appendMessage(
+            "System",
+            "User " + data.userId + " came online.",
+            "system",
+          );
+        });
+
+        socket.on("user_offline", (data) => {
+          appendMessage(
+            "System",
+            "User " + data.userId + " went offline.",
+            "system",
+          );
+        });
+      }
+
+      function sendMessage() {
+        if (!socket || !socket.connected) return alert("Connect first!");
+
+        const receiverId = document.getElementById("receiverId").value;
+        const content = document.getElementById("message").value;
+
+        if (!receiverId || !content)
+          return alert("Receiver ID and message required");
+
+        // Emit the event to the server
+        socket.emit("send_message", { receiverId, content });
+
+        appendMessage("You", content);
+        document.getElementById("message").value = ""; // clear input
+      }
+
+      function appendMessage(sender, text, cssClass = "msg") {
+        const div = document.createElement("div");
+        div.className = cssClass;
+        div.innerHTML = `<strong>${sender}:</strong> ${text}`;
+        document.getElementById("chat-window").appendChild(div);
+      }
+    </script>
+  </body>
+</html>
