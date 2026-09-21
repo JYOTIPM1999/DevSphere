@@ -1,9 +1,7 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import Message from "../models/messageModel.js";
-
-// In-memory map to track who is online (userId -> socketId)
-const userSocketMap = new Map();
+import Conversation from "../models/conversationModel.js";
 
 export const setupSocket = (server) => {
   const io = new Server(server, {
@@ -32,33 +30,59 @@ export const setupSocket = (server) => {
   io.on("connection", (socket) => {
     const userId = socket.user.id;
 
-    // 1. Map user ID to their current socket ID
-    userSocketMap.set(userId, socket.id);
+    // 1. Join a specific conversation room
+    socket.on("join_room", (conversationId) => {
+      socket.join(conversationId);
+      console.log(`User ${userId} joined room ${conversationId}`);
+    });
 
-    // 2. Broadcast to everyone else that this user is online
-    socket.broadcast.emit("user_online", { userId });
+    // 2. Leave room (when closing the chat window)
+    socket.on("leave_room", (conversationId) => {
+      socket.leave(conversationId);
+    });
 
-    // 3. Listen for new messages
+    // 3. Volatile Typing Indicators (No DB hits!)
+    // socket.to(room).emit sends to everyone in the room EXCEPT the sender
+    socket.on("typing_start", (conversationId) => {
+      socket
+        .to(conversationId)
+        .emit("typing_start", { conversationId, userId });
+    });
+
+    socket.on("typing_stop", (conversationId) => {
+      socket.to(conversationId).emit("ty[ing_stop", { conversationId, userId });
+    });
+
+    // 4. Send Message (Room broadcast + DB save)
+
     socket.on("send_message", async (data) => {
-      const { receiverId, content } = data;
-      // Save message to DB (This handles the "offline receiver" concept inherently.
-      // If they aren't online, it's safe in the DB for their next REST fetch).
+      const { conversationId, content } = data;
+
+      //save to db
       const message = await Message.create({
+        conversationId,
         sender: userId,
-        receiver: receiverId,
         content,
       });
-
-      // If the receiver is online, push the live message to their specific socket
-      const receiverSocketId = userSocketMap.get(receiverId);
-      if (receiverSocketId) {
-        io.to(receiverSocketId).emit("receive_message", message);
-      }
+      // Update the conversation's lastMessage for inbox sorting
+      await Conversation.findByIdAndUpdate(conversationId, {
+        lastMessage: message._id,
+      });
+      // Broadcast to everyone in the room (including the sender, so their UI updates)
+      io.in(conversationId).emit("receive_message", message);
     });
-    // 4. Handle Disconnect
-    socket.on("disconnect", () => {
-      userSocketMap.delete(userId);
-      io.emit("user_offline", { userId });
+    // 5. Read Receipt Pointer Update
+    socket.on("message_read", async (conversationId) => {
+      const now = Date.now();
+      // Update this specific user's pointer in the array
+      await Conversation.updateOne({
+        _id: conversationId,
+        "participants.user": userId,
+      });
+      // Tell the room this user has read up to this point
+      socket
+        .to(conversationId)
+        .emit("receipt_updated", { conversationId, userId, lastRead: now });
     });
   });
 };
