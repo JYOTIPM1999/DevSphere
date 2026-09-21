@@ -2,21 +2,14 @@ import { catchAsync } from "../utils/catchAsync.js";
 import Message from "../models/messageModel.js";
 
 export const getMessages = catchAsync(async (req, res) => {
-  const currentUserId = req.user._id;
-  const otherUserId = req.params.userId;
-  const page = parseInt(req.params.page, 10) || 1;
-  const limit = parseInt(req.query.limit, 10) || 50;
-  const skip = (page - 1) * limit;
+  const { conversationId } = req.params;
 
+  // Fetch messages and populate the sender's name/avatar (crucial for group chats!)
   const messages = await Message.find({
-    $or: [
-      { sender: currentUserId, receiver: otherUserId },
-      { sender: otherUserId, receiver: currentUserId },
-    ],
+    conversationId,
   })
     .sort({ createAt: 1 })
-    .skip(skip)
-    .limit(limit);
+    .populate("sender", "name avatar");
 
   res.status(200).json({ success: true, data: messages });
 });

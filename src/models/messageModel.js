@@ -2,12 +2,12 @@ import mongoose from "mongoose";
 
 const messageSchema = mongoose.Schema(
   {
-    sender: {
+    conversationId: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
+      ref: "Conversation",
       required: true,
     },
-    receiver: {
+    sender: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
       required: true,
@@ -17,11 +17,10 @@ const messageSchema = mongoose.Schema(
       required: true,
       trim: false,
     },
-    read: { type: Boolean, default: false },
   },
   { timestamps: true },
 );
 
-// Index for faster query performance when fetching chat history between two users
-messageSchema.index({ sender: 1, receiver: 1 });
+// Optimize querying messages by conversation and sorting by time
+messageSchema.index({ conversationId: 1, createdAt: -1 });
 export default mongoose.model("Message", messageSchema);
