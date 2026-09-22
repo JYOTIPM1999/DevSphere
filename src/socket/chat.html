@@ -131,6 +131,16 @@
             "system",
           );
         });
+        socket.on("new_notification", (data) => {
+          const actorName = data.actor.name || "Someone";
+          let action = "";
+          if (data.type === "like") action = "liked your post";
+          if (data.type === "comment") action = "commented on your post";
+          if (data.type === "follow") action = "started following you";
+          if (data.type === "message") action = "sent you a message";
+
+          appendMessage("🔔 NOTIFICATION", `${actorName} ${action}`, "system");
+        });
       }
 
       async function joinRoom() {
