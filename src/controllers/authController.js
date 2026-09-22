@@ -1,6 +1,9 @@
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import User from "../models/userModel.js";
+import { sendEmail } from "../utils/sendEmail.js";
+import { catchAsync } from "../utils/catchAsync.js";
+import crypto from "crypto";
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -37,6 +40,17 @@ export const registerUser = async (req, res) => {
       role,
       bio,
     });
+    const verifyToken = user.getVerificationToken();
+    await user.save(); // Save the newly generated token and expiry to DB
+
+    const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
+    const message = `<p>Welcome to DevSphere! Click to verify your email:</p><a href="${verifyUrl}">Verify Account</a>`;
+
+    sendEmail({
+      to: user.email,
+      subject: "Verify your DevSphere Account",
+      html: message,
+    }).catch((error) => console.error("Email failed to send:", error));
 
     res.status(201).json({
       success: true,
@@ -156,3 +170,71 @@ export const logoutUser = async (req, res) => {
     res.status(500).json({ success: false, error: error.message });
   }
 };
+
+export const verifyEmail = catchAsync(async (req, res) => {
+  // Re-hash the raw token from the URL to compare with DB
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+  const user = await User.findOne({
+    verificationToken: hashedToken,
+    verificationTokenExpire: { $gt: Date.now() }, // Ensure it hasn't expired
+  });
+  if (!user) throw new Error("Invalid or expired verification token");
+
+  // Clear tokens
+  user.isVerified = true;
+  user.verificationToken = undefined;
+  user.verificationTokenExpire = undefined;
+  await user.save();
+  res.status(200).json({ success: true, data: "Email verified successfully" });
+});
+
+export const forgotPassword = catchAsync(async (req, res) => {
+  const user = await User.findOne({ email: req.body.email });
+  if (!user) {
+    // Return 200 even if user doesn't exist to prevent email enumeration (security best practice)
+    return res.status(200).json({
+      success: true,
+      data: "If an account exists, a reset email was sent.",
+    });
+  }
+
+  const resetToken = user.getResetPasswordToken();
+  await user.save();
+
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${resetToken}`;
+  const message = `<p>You requested a password reset. Click here:</p><a href="${resetUrl}">Reset Password</a>`;
+  sendEmail({
+    to: user.email,
+    subject: "Password Reset",
+    html: message,
+  }).catch((error) => console.error(error));
+  res.status(200).json({
+    success: true,
+    data: "If an account exists, a reset email was sent.",
+  });
+});
+
+export const resetPassword = catchAsync(async (req, res) => {
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(req.params.token)
+    .digest("hex");
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpire: { $gt: Date.now() },
+  });
+  if (!user) throw new Error("Invalid or expired reset token");
+
+  // Hash the new password
+  const salt = await bcrypt.genSalt(10);
+  user.passwordHash = await bcrypt.hash(req.body.password, salt);
+
+  // Clear tokens
+  user.resetPasswordToken = undefined;
+  user.resetPasswordExpire = undefined;
+  await user.save();
+  res.status(200).json({ success: true, data: "Password reset successful" });
+});

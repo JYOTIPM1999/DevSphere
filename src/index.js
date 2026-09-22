@@ -15,8 +15,10 @@ import helmet from "helmet";
 import ExpressMongoSanitize from "express-mongo-sanitize";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
+import { startDigestJob } from "./cron/digestJob.js";
 
 connectDB();
+startDigestJob();
 const app = express();
 // 1. Security Headers & CORS
 app.use(helmet());
