@@ -3,8 +3,11 @@ import jwt from "jsonwebtoken";
 import Message from "../models/messageModel.js";
 import Conversation from "../models/conversationModel.js";
 
+let io; // Store io instance
+const userSocketMap = new Map(); // Bring this back to track online users!
+
 export const setupSocket = (server) => {
-  const io = new Server(server, {
+  io = new Server(server, {
     cors: {
       origin: "*",
       methods: ["GET", "POST"],
@@ -30,6 +33,9 @@ export const setupSocket = (server) => {
   io.on("connection", (socket) => {
     const userId = socket.user.id;
 
+    // Map user to socket for targeted notifications
+    userSocketMap.set(userId, socket.id);
+
     // 1. Join a specific conversation room
     socket.on("join_room", (conversationId) => {
       socket.join(conversationId);
@@ -54,7 +60,7 @@ export const setupSocket = (server) => {
     });
 
     // 4. Send Message (Room broadcast + DB save)
-
+    // Inside your io.on('connection') block, update the send_message event:
     socket.on("send_message", async (data) => {
       const { conversationId, content } = data;
 
@@ -65,11 +71,29 @@ export const setupSocket = (server) => {
         content,
       });
       // Update the conversation's lastMessage for inbox sorting
-      await Conversation.findByIdAndUpdate(conversationId, {
-        lastMessage: message._id,
-      });
+      const conversation = await Conversation.findByIdAndUpdate(
+        conversationId,
+        {
+          lastMessage: message._id,
+        },
+        { new: true }, // We need the updated doc to read participants
+      );
       // Broadcast to everyone in the room (including the sender, so their UI updates)
       io.in(conversationId).emit("receive_message", message);
+      // --- NEW NOTIFICATION LOGIC ---
+      // Fan-out notifications to everyone in the group except the sender
+      conversation.participants.forEach(async (participant) => {
+        if (participant.user.toString !== userId.toString()) {
+          const notification = await Notification.create({
+            recipient: participant.user,
+            actor: userId,
+            type: "message",
+            targetId: conversationId,
+          });
+          await notification.populate("actor", "name avatar");
+          sendLiveNotification(participant.user, notification); // Push live!
+        }
+      });
     });
     // 5. Read Receipt Pointer Update
     socket.on("message_read", async (conversationId) => {
@@ -84,5 +108,21 @@ export const setupSocket = (server) => {
         .to(conversationId)
         .emit("receipt_updated", { conversationId, userId, lastRead: now });
     });
+
+    socket.on("disconnect", () => {
+      userSocketMap.delete(userId);
+    });
   });
+};
+
+// --- NEW HELPER FUNCTION ---
+// Controllers will call this to push live notifications
+export const sendLiveNotification = (recipientId, notification) => {
+  if (!io) {
+    return;
+  }
+  const socketId = userSocketMap.get(recipientId.toString());
+  if (socketId) {
+    io.to(socketId).emit("new_notification", notification);
+  }
 };
