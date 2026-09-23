@@ -17,6 +17,7 @@ import ExpressMongoSanitize from "express-mongo-sanitize";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { startDigestJob } from "./cron/digestJob.js";
+import "./queue/workers.js";
 
 connectDB();
 startDigestJob();

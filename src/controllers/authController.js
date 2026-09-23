@@ -4,6 +4,7 @@ import User from "../models/userModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import crypto from "crypto";
+import { emailQueue } from "../queue/queues.js";
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -46,11 +47,35 @@ export const registerUser = async (req, res) => {
     const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
     const message = `<p>Welcome to DevSphere! Click to verify your email:</p><a href="${verifyUrl}">Verify Account</a>`;
 
-    sendEmail({
-      to: user.email,
-      subject: "Verify your DevSphere Account",
-      html: message,
-    }).catch((error) => console.error("Email failed to send:", error));
+    // sendEmail({
+    //   to: user.email,
+    //   subject: "Verify your DevSphere Account",
+    //   html: message,
+    // }).catch((error) => console.error("Email failed to send:", error));
+
+    await emailQueue.add(
+      "verify-email",
+      {
+        to: user.email,
+        subject: "Verify your DevSphere Account",
+        html: message,
+      },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 2000 }, // Retries at 2s, 4s, 8s
+      },
+    );
+
+    // Update the forgotPassword function identically:
+    await emailQueue.add(
+      "reset-password",
+      {
+        to: user.email,
+        subject: "Password Reset",
+        html: message,
+      },
+      { attempts: 3, backoff: { type: "exponential", delay: 2000 } },
+    );
 
     res.status(201).json({
       success: true,

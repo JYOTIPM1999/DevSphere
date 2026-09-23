@@ -2,12 +2,14 @@ import cron from "node-cron";
 import Notification from "../models/notificationModel.js";
 import User from "../models/userModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
+import { digestQueue } from "../queue/queues.js";
 
 //This script runs daily at 8:00 AM. It finds users with unread notifications,
 // emails them a summary, and marks those specific notifications as emailed (so we don't spam them tomorrow).
 export const startDigestJob = () => {
   cron.schedule("0 8 * * *", async () => {
     console.log("Running daily notification digest...");
+    await digestQueue.add("process-daily-digest", {});
     try {
       // Find all unique users who have unread notifications
       const usersWithNotifications = await Notification.distinct("recipient", {
