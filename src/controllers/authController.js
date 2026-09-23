@@ -4,6 +4,7 @@ import User from "../models/userModel.js";
 import { sendEmail } from "../utils/sendEmail.js";
 import { catchAsync } from "../utils/catchAsync.js";
 import crypto from "crypto";
+import { emailQueue } from "../queue/queues.js";
 
 const generateAccessToken = (user) => {
   return jwt.sign(
@@ -46,11 +47,35 @@ export const registerUser = async (req, res) => {
     const verifyUrl = `${process.env.FRONTEND_URL}/verify/${verifyToken}`;
     const message = `<p>Welcome to DevSphere! Click to verify your email:</p><a href="${verifyUrl}">Verify Account</a>`;
 
-    sendEmail({
-      to: user.email,
-      subject: "Verify your DevSphere Account",
-      html: message,
-    }).catch((error) => console.error("Email failed to send:", error));
+    // sendEmail({
+    //   to: user.email,
+    //   subject: "Verify your DevSphere Account",
+    //   html: message,
+    // }).catch((error) => console.error("Email failed to send:", error));
+
+    await emailQueue.add(
+      "verify-email",
+      {
+        to: user.email,
+        subject: "Verify your DevSphere Account",
+        html: message,
+      },
+      {
+        attempts: 3,
+        backoff: { type: "exponential", delay: 2000 }, // Retries at 2s, 4s, 8s
+      },
+    );
+
+    // Update the forgotPassword function identically:
+    await emailQueue.add(
+      "reset-password",
+      {
+        to: user.email,
+        subject: "Password Reset",
+        html: message,
+      },
+      { attempts: 3, backoff: { type: "exponential", delay: 2000 } },
+    );
 
     res.status(201).json({
       success: true,
@@ -237,4 +262,26 @@ export const resetPassword = catchAsync(async (req, res) => {
   user.resetPasswordExpire = undefined;
   await user.save();
   res.status(200).json({ success: true, data: "Password reset successful" });
+});
+
+export const googleCallback = catchAsync(async (req, res) => {
+  // req.user is provided by Passport after successful authentication
+  const user = req.user;
+  // Generate tokens
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  // Set the HTTP-Only refresh cookie (same as standard login)
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+  res.cookie("jwt", refreshToken, cookieOptions);
+
+  // Redirect to frontend, passing the access token in the URL so the React app can grab it
+  res.redirect(
+    `${process.env.FRONTEND_URL}/oauth-success?token=${accessToken}`,
+  );
 });

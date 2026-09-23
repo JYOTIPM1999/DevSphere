@@ -16,9 +16,9 @@ const userSchema = new mongoose.Schema(
       enum: ["user", "admin"],
       default: "user",
     },
+    googleId: { type: String, unique: true, sparse: true }, // sparse allows multiple nulls
     passwordHash: {
       type: String,
-      required: true,
     },
     avatar: {
       type: String,
