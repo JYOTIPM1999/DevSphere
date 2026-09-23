@@ -2,6 +2,7 @@ import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import Message from "../models/messageModel.js";
 import Conversation from "../models/conversationModel.js";
+import { connection as redis } from "../queue/connection.js";
 
 let io; // Store io instance
 const userSocketMap = new Map(); // Bring this back to track online users!
@@ -30,11 +31,13 @@ export const setupSocket = (server) => {
   });
 
   //socket connection
-  io.on("connection", (socket) => {
+  io.on("connection", async (socket) => {
     const userId = socket.user.id;
 
-    // Map user to socket for targeted notifications
-    userSocketMap.set(userId, socket.id);
+    // --- NEW: Map user to socket in Redis instead of local memory ---
+    // We add a 24-hour TTL just in case a server crashes without firing the disconnect event
+    await redis.setex(`presence:${userId}`, 60 * 60 * 24, socket.id);
+    console.log(`User ${userId} connected. Presence saved to Redis.`);
 
     // 1. Join a specific conversation room
     socket.on("join_room", (conversationId) => {
@@ -83,7 +86,7 @@ export const setupSocket = (server) => {
       // --- NEW NOTIFICATION LOGIC ---
       // Fan-out notifications to everyone in the group except the sender
       conversation.participants.forEach(async (participant) => {
-        if (participant.user.toString !== userId.toString()) {
+        if (participant.user.toString() !== userId.toString()) {
           const notification = await Notification.create({
             recipient: participant.user,
             actor: userId,
@@ -109,19 +112,22 @@ export const setupSocket = (server) => {
         .emit("receipt_updated", { conversationId, userId, lastRead: now });
     });
 
-    socket.on("disconnect", () => {
-      userSocketMap.delete(userId);
+    socket.on("disconnect", async () => {
+      // --- NEW: Remove presence from Redis ---
+      await redis.del(`presence:${userId}`);
+      console.log(`User ${userId} disconnected. Presence removed from Redis.`);
     });
   });
 };
 
-// --- NEW HELPER FUNCTION ---
+// --- NEW: Async Helper Function ---
 // Controllers will call this to push live notifications
-export const sendLiveNotification = (recipientId, notification) => {
+// It must be async now because it queries Redis
+export const sendLiveNotification = async (recipientId, notification) => {
   if (!io) {
     return;
   }
-  const socketId = userSocketMap.get(recipientId.toString());
+  const socketId = await redis.get(`presence:${recipientId.toString()}`);
   if (socketId) {
     io.to(socketId).emit("new_notification", notification);
   }
