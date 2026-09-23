@@ -263,3 +263,25 @@ export const resetPassword = catchAsync(async (req, res) => {
   await user.save();
   res.status(200).json({ success: true, data: "Password reset successful" });
 });
+
+export const googleCallback = catchAsync(async (req, res) => {
+  // req.user is provided by Passport after successful authentication
+  const user = req.user;
+  // Generate tokens
+  const accessToken = generateAccessToken(user._id);
+  const refreshToken = generateRefreshToken(user._id);
+
+  // Set the HTTP-Only refresh cookie (same as standard login)
+  const cookieOptions = {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: "strict",
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+  res.cookie("jwt", refreshToken, cookieOptions);
+
+  // Redirect to frontend, passing the access token in the URL so the React app can grab it
+  res.redirect(
+    `${process.env.FRONTEND_URL}/oauth-success?token=${accessToken}`,
+  );
+});

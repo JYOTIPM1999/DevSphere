@@ -18,6 +18,8 @@ import cors from "cors";
 import rateLimit from "express-rate-limit";
 import { startDigestJob } from "./cron/digestJob.js";
 import "./queue/workers.js";
+import "./config/passport.js";
+import passport from "passport";
 
 connectDB();
 startDigestJob();
@@ -39,6 +41,7 @@ app.use(
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
+app.use(passport.initialize());
 
 // 3. THEN Sanitize the parsed data
 app.use(ExpressMongoSanitize());
