@@ -8,6 +8,7 @@ import userRoutes from "./routes/userRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 import mediaRoutes from "./routes/mediaRoutes.js";
 import { connectDB } from "./config/db.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
@@ -69,6 +70,7 @@ app.use("/api/messages", messageRoutes);
 app.use("/api/conversation", conversationRoutes);
 app.use("/api/notifications", notificationRoutes);
 app.use("/api/media", mediaRoutes);
+app.use("/api/admin", adminRoutes);
 
 // Add the error handler right here, AFTER all routes
 app.use(errorHandler);

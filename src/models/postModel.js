@@ -20,5 +20,7 @@ const postSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
-
+// Optimizes grouping by date and searching by author
+postSchema.index({ createdAt: -1 });
+postSchema.index({ author: 1 });
 export default mongoose.model("Post", postSchema);
