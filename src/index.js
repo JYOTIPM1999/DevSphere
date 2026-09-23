@@ -8,6 +8,7 @@ import userRoutes from "./routes/userRoutes.js";
 import messageRoutes from "./routes/messageRoutes.js";
 import conversationRoutes from "./routes/conversationRoutes.js";
 import notificationRoutes from "./routes/notificationRoutes.js";
+import mediaRoutes from "./routes/mediaRoutes.js";
 import { connectDB } from "./config/db.js";
 import { errorHandler } from "./middlewares/errorHandler.js";
 import { setupSocket } from "./socket/socket.js";
@@ -21,7 +22,7 @@ connectDB();
 startDigestJob();
 const app = express();
 // 1. Security Headers & CORS
-app.use(helmet());
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || [
@@ -63,6 +64,7 @@ app.use("/api/users", userRoutes);
 app.use("/api/messages", messageRoutes);
 app.use("/api/conversation", conversationRoutes);
 app.use("/api/notifications", notificationRoutes);
+app.use("/api/media", mediaRoutes);
 
 // Add the error handler right here, AFTER all routes
 app.use(errorHandler);
