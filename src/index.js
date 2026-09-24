@@ -16,17 +16,30 @@ import { setupSocket } from "./socket/socket.js";
 import helmet from "helmet";
 import ExpressMongoSanitize from "express-mongo-sanitize";
 import cors from "cors";
-import rateLimit from "express-rate-limit";
 import { startDigestJob } from "./cron/digestJob.js";
 import "./queue/workers.js";
 import "./config/passport.js";
 import passport from "passport";
+import { globalLimiter } from "./middlewares/rateLimiter.js";
 
 connectDB();
 startDigestJob();
 const app = express();
 // 1. Security Headers & CORS
-app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+app.use(
+  helmet({
+    crossOriginResourcePolicy: { policy: "cross-origin" },
+    contentSecurityPolicy: {
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: ["'self'", "https://cdn.socket.io"], // Allow socket.io scripts
+        imgSrc: ["'self'", "data:", "https://res.cloudinary.com"], // Allow Cloudinary images if you use it later
+        objectSrc: ["'none'"], // Prevent Flash/Java plugins
+        upgradeInsecureRequests: [], // Force HTTPS
+      },
+    },
+  }),
+);
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || [
@@ -47,22 +60,13 @@ app.use(passport.initialize());
 // 3. THEN Sanitize the parsed data
 app.use(ExpressMongoSanitize());
 
-// Rate Limiting for Auth routes (max 100 requests per 15 minutes per IP)
-const authLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 100,
-  message: {
-    success: false,
-    error: "Too many requests from this IP, please try again after 15 minutes",
-  },
-});
-
 const PORT = process.env.PORT || 3000;
 const MONGO_URI = process.env.MONGO_URI;
 
 console.log("PORT:", PORT);
 console.log("MONGO_URI:", MONGO_URI);
 
+app.use("/api", globalLimiter);
 app.use("/api/auth", authLimiter, authRoutes);
 app.use("/api/posts", postRoutes);
 app.use("/api/users", userRoutes);
