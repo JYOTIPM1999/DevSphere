@@ -10,14 +10,15 @@ import {
   googleCallback,
 } from "../controllers/authController.js";
 import passport from "passport";
+import { authLimiter } from "../middlewares/rateLimiter.js";
 const router = express.Router();
 
-router.post("/register", registerUser);
-router.post("/login", loginUser);
+router.post("/register", authLimiter, registerUser);
+router.post("/login", authLimiter, loginUser);
 router.post("/refresh", refresh);
 router.post("/logout", logoutUser);
 router.get("/verify/:token", verifyEmail);
-router.post("/forgot-password", forgotPassword);
+router.post("/forgot-password", authLimiter, forgotPassword);
 router.post("/reset-password/:token", resetPassword);
 // Trigger the Google login screen
 router.get(
