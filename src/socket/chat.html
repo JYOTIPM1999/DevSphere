@@ -161,7 +161,7 @@
         // 3. Fetch Message History via REST
         try {
           const response = await fetch(
-            `http://localhost:3000/api/messages/${currentRoomId}`,
+            `http://localhost:3000/api/v1/messages/${currentRoomId}`,
             {
               method: "GET",
               headers: {
