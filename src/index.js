@@ -21,6 +21,7 @@ import "./queue/workers.js";
 import "./config/passport.js";
 import passport from "passport";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
+import { API_PREFIX } from "./config/constants.js";
 
 if (process.env.NODE_ENV !== "test") {
   connectDB();
@@ -68,15 +69,15 @@ const MONGO_URI = process.env.MONGO_URI;
 console.log("PORT:", PORT);
 console.log("MONGO_URI:", MONGO_URI);
 
-app.use("/api/v1", globalLimiter);
-app.use("/api/v1/auth", authRoutes);
-app.use("/api/v1/posts", postRoutes);
-app.use("/api/v1/users", userRoutes);
-app.use("/api/v1/messages", messageRoutes);
-app.use("/api/v1/conversation", conversationRoutes);
-app.use("/api/v1/notifications", notificationRoutes);
-app.use("/api/v1/media", mediaRoutes);
-app.use("/api/v1/admin", adminRoutes);
+app.use(`${API_PREFIX}`, globalLimiter);
+app.use(`${API_PREFIX}/auth`, authRoutes);
+app.use(`${API_PREFIX}/posts`, postRoutes);
+app.use(`${API_PREFIX}/users`, userRoutes);
+app.use(`${API_PREFIX}/messages`, messageRoutes);
+app.use(`${API_PREFIX}/conversation`, conversationRoutes);
+app.use(`${API_PREFIX}/notifications`, notificationRoutes);
+app.use(`${API_PREFIX}/media`, mediaRoutes);
+app.use(`${API_PREFIX}/admin`, adminRoutes);
 
 // Add the error handler right here, AFTER all routes
 app.use(errorHandler);
