@@ -1,0 +1,40 @@
+name: DevSphere CI/CD
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  lint-and-test:
+    name: Lint & Test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Dependencies
+        run: npm ci
+
+      - name: Run Linter
+        # The --if-present flag skips this if you haven't set up a "lint" script in package.json yet
+        run: npm run lint --if-present
+      - name: Run Test Suite
+        run: npm test
+
+  deploy:
+    name: Deploy to Production
+    needs: lint-and-test # This is the gate! Deploy WILL NOT RUN if lint-and-test fails.
+    runs-on: ubuntu-latest
+    # Only deploy if tests passed AND this is a direct push to the main branch
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    steps:
+      - name: Trigger Webhook(Render/Railway)
+        # You will grab this webhook URL from your hosting provider's settings
+        run: curl -X POST ${{ secrets.DEPLOY_HOOK }}

@@ -1,3 +1,5 @@
+![CI/CD Status](https://github.com/JYOTIPM1999/DevSphere/actions/workflows/main.yml/badge.svg)
+
 # DevSphere API 🚀
 
 A real-time social platform backend built with Node.js, Express, MongoDB, and Socket.io.
