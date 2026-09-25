@@ -68,15 +68,15 @@ const MONGO_URI = process.env.MONGO_URI;
 console.log("PORT:", PORT);
 console.log("MONGO_URI:", MONGO_URI);
 
-app.use("/api", globalLimiter);
-app.use("/api/auth", authRoutes);
-app.use("/api/posts", postRoutes);
-app.use("/api/users", userRoutes);
-app.use("/api/messages", messageRoutes);
-app.use("/api/conversation", conversationRoutes);
-app.use("/api/notifications", notificationRoutes);
-app.use("/api/media", mediaRoutes);
-app.use("/api/admin", adminRoutes);
+app.use("/api/v1", globalLimiter);
+app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/posts", postRoutes);
+app.use("/api/v1/users", userRoutes);
+app.use("/api/v1/messages", messageRoutes);
+app.use("/api/v1/conversation", conversationRoutes);
+app.use("/api/v1/notifications", notificationRoutes);
+app.use("/api/v1/media", mediaRoutes);
+app.use("/api/v1/admin", adminRoutes);
 
 // Add the error handler right here, AFTER all routes
 app.use(errorHandler);
