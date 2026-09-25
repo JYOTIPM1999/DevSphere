@@ -22,6 +22,7 @@ import "./config/passport.js";
 import passport from "passport";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { API_PREFIX } from "./config/constants.js";
+import { setupSwagger } from "./config/swagger.js";
 
 if (process.env.NODE_ENV !== "test") {
   connectDB();
@@ -69,6 +70,9 @@ const MONGO_URI = process.env.MONGO_URI;
 console.log("PORT:", PORT);
 console.log("MONGO_URI:", MONGO_URI);
 
+// Initialize Swagger Docs  before route declarations so the documentation page
+// doesn't get caught by any of your global API rate limiters.
+setupSwagger(app);
 app.use(`${API_PREFIX}`, globalLimiter);
 app.use(`${API_PREFIX}/auth`, authRoutes);
 app.use(`${API_PREFIX}/posts`, postRoutes);
