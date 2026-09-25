@@ -11,7 +11,51 @@ import {
 } from "../controllers/authController.js";
 import passport from "passport";
 import { authLimiter } from "../middlewares/rateLimiter.js";
+
 const router = express.Router();
+
+/**
+ * @swagger
+ * /auth/login:
+ *   post:
+ *     summary: Log in a user
+ *     tags: [Auth]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - email
+ *               - password
+ *             properties:
+ *               email:
+ *                 type: string
+ *                 format: email
+ *                 example: test@example.com
+ *               password:
+ *                 type: string
+ *                 example: password123
+ *     responses:
+ *       200:
+ *         description: Login successful
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                   example: true
+ *                 data:
+ *                   type: object
+ *                   properties:
+ *                     token:
+ *                       type: string
+ *       401:
+ *         description: Invalid credentials
+ */
 
 router.post("/register", authLimiter, registerUser);
 router.post("/login", authLimiter, loginUser);
