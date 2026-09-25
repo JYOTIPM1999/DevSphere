@@ -10,6 +10,14 @@ jobs:
   lint-and-test:
     name: Lint & Test
     runs-on: ubuntu-latest
+    # --- ADD THIS ENV BLOCK ---
+    env:
+      JWT_ACCESS_SECRET: "test-secret-key"
+      GOOGLE_CLIENT_ID: "test-google-id"
+      GOOGLE_CLIENT_SECRET: "test-google-secret"
+      FRONTEND_URL: "http://localhost:5173"
+      # Add any other variables your index.js or tests strictly require to boot up
+    # --------------------------
     steps:
       - name: Checkout Repository
         uses: actions/checkout@v4
