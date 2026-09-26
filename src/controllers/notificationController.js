@@ -1,5 +1,14 @@
 import Notification from "../models/notificationModel.js";
 import { catchAsync } from "../utils/catchAsync.js";
+import webpush from "web-push";
+import User from "../models/userModel.js";
+
+// Configure Web Push with your VAPID keys
+webpush.setVapidDetails(
+  process.env.VAPID_SUBJECT,
+  process.env.VAPID_PUBLIC_KEY,
+  process.env.VAPID_PRIVATE_KEY,
+);
 
 export const getNotifications = catchAsync(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
@@ -46,4 +55,35 @@ export const markAllAsRead = catchAsync(async (req, res) => {
   res
     .status(200)
     .json({ success: true, data: "All notifications marked as read" });
+});
+
+export const subscribeToPush = catchAsync(async (req, res) => {
+  const subscription = req.body;
+  // Save the subscription object to the logged-in user
+  await User.findByIdAndUpdate(req.user._id, {
+    pushSubscription: subscription,
+  });
+  res.status(200).json({
+    success: true,
+    message: "Successfully subscribed to push notifications.",
+  });
+});
+
+export const testPush = catchAsync(async (req, res) => {
+  const user = await User.findById(req.user._id);
+
+  if (!user || !user.pushSubscription || !user.pushSubscription.endpoint) {
+    return res
+      .status(400)
+      .json({ success: false, error: "User has no push subscription saved." });
+  }
+
+  const payload = JSON.stringify({
+    title: "Backend Push Test",
+    body: "Your Service Worker successfully woke up!",
+    url: "http://localhost:5173",
+  });
+
+  await webpush.sendNotification(user.pushSubscription, payload);
+  res.status(200).json({ success: true, message: "Push sent!" });
 });

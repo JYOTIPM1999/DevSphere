@@ -1,8 +1,10 @@
 import { Server } from "socket.io";
 import jwt from "jsonwebtoken";
 import Message from "../models/messageModel.js";
+import User from "../models/userModel.js";
 import Conversation from "../models/conversationModel.js";
 import { connection as redis } from "../queue/connection.js";
+import webpush from "web-push";
 
 let io; // Store io instance
 const userSocketMap = new Map(); // Bring this back to track online users!
@@ -127,8 +129,34 @@ export const sendLiveNotification = async (recipientId, notification) => {
   if (!io) {
     return;
   }
+  // 1. Try to send via Socket (if they are online)
   const socketId = await redis.get(`presence:${recipientId.toString()}`);
   if (socketId) {
     io.to(socketId).emit("new_notification", notification);
+  }
+  // 2. Fire the Web Push Notification in the background
+  try {
+    const user = await User.findById(recipientId);
+    if (user && user.pushSubscription && user.pushSubscription.endpoint) {
+      const payload = JSON.stringify({
+        title: "New Notification",
+        body:
+          notification.type === "message"
+            ? "You have a new message"
+            : "Someone interacted with your post",
+        url: process.env.FRONTEND_URL, // Clicking the notification opens this
+      });
+      await webpush.sendNotification(user.pushSubscription, payload);
+    }
+  } catch (error) {
+    // If the user revoked permission, the push service returns a 410 Gone error.
+    // We should clean up the invalid subscription.
+    if (error.statusCode === 410) {
+      await User.findByIdAndUpdate(recipientId, {
+        $unset: { pushSubscription: 1 },
+      });
+    } else {
+      console.error("Error sending push notification:", error);
+    }
   }
 };
