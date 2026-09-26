@@ -17,6 +17,10 @@ jobs:
       GOOGLE_CLIENT_SECRET: "test-google-secret"
       FRONTEND_URL: "http://localhost:5173"
       # Add any other variables your index.js or tests strictly require to boot up
+      # Add these three lines:
+      VAPID_SUBJECT: "mailto:test@example.com"
+      VAPID_PUBLIC_KEY: "test-public-key"
+      VAPID_PRIVATE_KEY: "test-private-key"
     # --------------------------
     steps:
       - name: Checkout Repository

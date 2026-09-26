@@ -60,6 +60,47 @@ export const getPosts = catchAsync(async (req, res) => {
   res.status(200).json({ success: true, data: posts });
 });
 
+export const searchPosts = catchAsync(async (req, res) => {
+  const { q } = req.query;
+  if (!q) {
+    return res
+      .status(400)
+      .json({ success: false, error: 'Query parameter "q" is required' });
+  }
+  const posts = await Post.aggregate([
+    {
+      $search: {
+        index: "default", // Must match the name you gave in the Atlas UI
+        text: {
+          query: q,
+          path: "content", // The field to search inside
+          fuzzy: {
+            maxEdits: 2, // Allows up to 2 typos (e.g., "nodehs" finds "nodejs")
+            prefixLength: 1, // The first letter must match exactly to optimize speed
+          },
+        },
+      },
+    },
+    // Limit results immediately for performance
+    { $limit: 20 },
+    // Extract the Lucene relevance score to show how well it matched
+    { $addFields: { score: { $meta: "searchScore" } } },
+    // Join the author details
+    {
+      $lookup: {
+        from: "users",
+        localField: "author",
+        foreignField: "_id",
+        as: "authorDetails",
+      },
+    },
+    { $unwind: "$authorDetails" },
+    // Exclude sensitive author data
+    { $project: { "autherDetails.passwordHash": 0 } },
+  ]);
+  res.status(200).json({ success: true, data: posts });
+});
+
 export const getPost = catchAsync(async (req, res) => {
   const postId = req.params.id;
   // 1. Fetch the post

@@ -4,6 +4,7 @@ import {
   deletePost,
   getPost,
   getPosts,
+  searchPosts,
   updatePost,
 } from "../controllers/postController.js";
 import { protect } from "../middlewares/authMiddleware.js";
@@ -44,6 +45,9 @@ router
   .route("/")
   .get(protect, getPosts)
   .post(protect, upload.single("image"), createPost);
+
+// Place this ABOVE router.get('/:id', getPostById)
+router.get("/search", protect, searchPosts);
 
 /**
  * @swagger
@@ -108,6 +112,7 @@ router
  *       403:
  *         description: Unauthorized to delete this post
  */
+
 router
   .route("/:id")
   .get(protect, getPost)
