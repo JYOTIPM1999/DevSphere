@@ -4,11 +4,13 @@ import webpush from "web-push";
 import User from "../models/userModel.js";
 
 // Configure Web Push with your VAPID keys
-webpush.setVapidDetails(
-  process.env.VAPID_SUBJECT,
-  process.env.VAPID_PUBLIC_KEY,
-  process.env.VAPID_PRIVATE_KEY,
-);
+if (process.env.NODE_ENV !== "test") {
+  webpush.setVapidDetails(
+    process.env.VAPID_SUBJECT,
+    process.env.VAPID_PUBLIC_KEY,
+    process.env.VAPID_PRIVATE_KEY,
+  );
+}
 
 export const getNotifications = catchAsync(async (req, res) => {
   const page = parseInt(req.query.page, 10) || 1;
