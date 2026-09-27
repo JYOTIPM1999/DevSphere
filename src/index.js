@@ -23,6 +23,10 @@ import passport from "passport";
 import { globalLimiter } from "./middlewares/rateLimiter.js";
 import { API_PREFIX } from "./config/constants.js";
 import { setupSwagger } from "./config/swagger.js";
+import { ApolloServer } from "@apollo/server";
+import { typeDefs } from "./graphql/typeDefs.js";
+import { resolvers } from "./graphql/resolvers.js";
+import { expressMiddleware } from "@as-integrations/express4";
 
 if (process.env.NODE_ENV !== "test") {
   connectDB();
@@ -36,8 +40,15 @@ app.use(
     contentSecurityPolicy: {
       directives: {
         defaultSrc: ["'self'"],
-        scriptSrc: ["'self'", "https://cdn.socket.io"], // Allow socket.io scripts
+        scriptSrc: [
+          "'self'",
+          "'unsafe-inline'", // Crucial for Apollo UI
+          "https://cdn.socket.io",
+          "https://embeddable-sandbox.cdn.apollographql.com",
+        ], // Allow socket.io and Apollo Sandbox scripts
+        styleSrc: ["'self'", "'unsafe-inline'"], // Crucial for Apollo UI
         imgSrc: ["'self'", "data:", "https://res.cloudinary.com"], // Allow Cloudinary images if you use it later
+        frameSrc: ["'self'", "https://sandbox.embed.apollographql.com"], // Allow Apollo Sandbox iframe
         objectSrc: ["'none'"], // Prevent Flash/Java plugins
         upgradeInsecureRequests: [], // Force HTTPS
       },
@@ -50,6 +61,7 @@ app.use(
       "http://localhost:5173",
       "http://127.0.0.1:5500",
       "http://localhost:5500",
+      "https://studio.apollographql.com", // Allows Sandbox to read your GraphQL schema
     ], // Change this when you deploy your frontend
     credentials: true, // Crucial for your HTTP-only refresh token cookie
   }),
@@ -82,6 +94,27 @@ app.use(`${API_PREFIX}/conversation`, conversationRoutes);
 app.use(`${API_PREFIX}/notifications`, notificationRoutes);
 app.use(`${API_PREFIX}/media`, mediaRoutes);
 app.use(`${API_PREFIX}/admin`, adminRoutes);
+
+// --- NEW APOLLO SERVER SETUP ---
+const startApolloServer = async () => {
+  const apolloServer = new ApolloServer({
+    typeDefs,
+    resolvers,
+  });
+  // Use Top-Level Await so Express halts and mounts this BEFORE the error handler
+  if (process.env.NODE_ENV !== "test") {
+    // We must await server.start() before applying it to Express
+    await apolloServer.start();
+
+    // Mount GraphQL strictly at the /graphql endpoint
+    app.use("/graphql", expressMiddleware(apolloServer));
+    console.log(`🚀 GraphQL ready at http://localhost:${PORT}/graphql`);
+  }
+};
+// Start it (unless we are in the test environment)
+if (process.env.NODE_ENV !== "test") {
+  startApolloServer();
+}
 
 // Add the error handler right here, AFTER all routes
 app.use(errorHandler);
