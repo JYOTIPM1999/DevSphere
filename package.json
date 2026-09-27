@@ -13,6 +13,8 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@apollo/server": "^5.5.1",
+    "@as-integrations/express4": "^1.1.2",
     "@faker-js/faker": "^10.6.0",
     "bcrypt": "^6.0.0",
     "bullmq": "^6.3.8",
@@ -23,6 +25,7 @@
     "express": "^4.22.3",
     "express-mongo-sanitize": "^2.2.0",
     "express-rate-limit": "^8.7.0",
+    "graphql": "^16.14.2",
     "helmet": "^8.3.0",
     "ioredis": "^6.0.0",
     "jsonwebtoken": "^9.0.3",
