@@ -27,6 +27,8 @@ import { ApolloServer } from "@apollo/server";
 import { typeDefs } from "./graphql/typeDefs.js";
 import { resolvers } from "./graphql/resolvers.js";
 import { expressMiddleware } from "@as-integrations/express4";
+import morgan from "morgan";
+import { logger } from "./config/logger.js";
 
 if (process.env.NODE_ENV !== "test") {
   connectDB();
@@ -64,6 +66,13 @@ app.use(
       "https://studio.apollographql.com", // Allows Sandbox to read your GraphQL schema
     ], // Change this when you deploy your frontend
     credentials: true, // Crucial for your HTTP-only refresh token cookie
+  }),
+);
+// Morgan intercepts requests and writes them to our Winston logger
+const morganFormat = process.env.NODE_ENV === "production" ? "combined" : "dev";
+app.use(
+  morgan(morganFormat, {
+    stream: { write: (message) => logger.info(message.trim()) },
   }),
 );
 
@@ -128,7 +137,7 @@ setupSocket(server);
 
 if (process.env.NODE_ENV !== "test") {
   server.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+    logger.info(`Server is running on port ${PORT}`);
   });
 }
 export { app, server };
