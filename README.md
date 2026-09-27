@@ -1,31 +1,38 @@
-![CI/CD Status](https://github.com/JYOTIPM1999/DevSphere/actions/workflows/main.yml/badge.svg)
+# DevSphere Backend 🚀
 
-# DevSphere API 🚀
+A production-grade, full-stack social platform backend built with Node.js, Express, and MongoDB. Designed with a focus on security, CI/CD best practices, and real-time performance.
 
-A real-time social platform backend built with Node.js, Express, MongoDB, and Socket.io.
+## 🌟 Key Features
 
-## Features Built (MVP Core)
+- **Dual API Architecture:** RESTful endpoints for standard CRUD + a GraphQL API for optimized frontend fetching.
+- **Real-time Infrastructure:** Socket.io for live chat/typing indicators, heavily optimized with Redis presence tracking.
+- **Background Processing:** BullMQ & Redis queues for non-blocking email delivery and digest cron jobs.
+- **Enterprise Security:** Helmet, Express-Mongo-Sanitize, robust per-route Rate Limiting, and JWT + Refresh Token rotation.
+- **Advanced Search:** MongoDB Atlas Search (Lucene) for typo-tolerant, relevance-ranked querying.
 
-- **Authentication:** Secure JWT flow (15m Access Token) with HTTP-only Refresh Tokens (7d).
-- **RESTful CRUD:** Zod-validated post creation, pagination, and ownership checks.
-- **Relationships:** Compound indexing for unique Likes and Follows, plus 1:N Comments.
-- **File Upload:** Multipart form processing with Multer, streaming directly to Cloudinary.
-- **Real-time Chat:** Socket.io integrated with the Express HTTP server, featuring handshake authentication and DB persistence for offline messages.
-- **Security:** Helmet headers, Express Rate Limiting, and NoSQL injection sanitization.
+## 🏗️ Architecture & Tech Stack
 
-## Local Setup
+- **Core:** Node.js (ES Modules), Express, MongoDB (Mongoose)
+- **Caching & Queues:** Redis (Upstash), BullMQ
+- **Real-time & Push:** Socket.io, Web Push
+- **Testing & CI/CD:** Jest, Supertest, GitHub Actions (Automated testing & deployments to Render)
 
-1. Clone the repo and run `npm install`.
-2. Copy `.env.example` to `.env` and fill in your MongoDB and Cloudinary credentials.
-3. Run `npm run dev` to start the server.
+## 🚀 Quick Start
 
-## Roadmap (Planned Features)
+1. Clone the repo and `npm install`
+2. Create a `.env` file (see `.env.example`)
+3. `npm run dev`
 
-Deliberately parked to maintain scope discipline for the MVP sprint:
+## 📊 Performance & Load Testing
 
-- Media streaming (range requests)
-- Email system (verification/reset/digest)
-- Payments (Stripe integration)
-- OAuth social login
-- Redis caching & Background job queue
-- Group chat rooms, typing indicators, and read receipts
+_Tested using Autocannon on the `/api/v1/posts` endpoint (Rate limiting temporarily bypassed to test DB throughput):_
+
+- **Concurrent Connections:** 50
+- **Average Throughput:** ~86 Req/Sec
+- **Average Latency:** 536 ms
+- **Observations:** Throughput is currently bound by free-tier MongoDB Atlas / Upstash Redis connection limits. At 50 concurrent connections, upstream throttling results in dropped connections (~30% error rate). In a production environment, scaling the database tier and increasing the Mongoose connection pool size would immediately resolve this bottleneck.
+
+## 🗺️ Roadmap
+
+- Migrating the messaging module to GraphQL
+- Implementing cursor-based pagination for the feed
