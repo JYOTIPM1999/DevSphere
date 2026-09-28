@@ -7,14 +7,17 @@ if (!process.env.REDIS_URL) {
 } else {
   console.log("✅ Redis URL loaded successfully.");
 }
-// BullMQ requires maxRetriesPerRequest to be null
-// export const connection = new Redis(process.env.REDIS_URL, {
-//   maxRetriesPerRequest: null,
-//   tls: {}, // Force TLS connection for Upstash
-// });
+// 1. Define base options needed for BullMQ/Redis
+const redisOptions = {
+  maxRetriesPerRequest: null,
+};
 
-// Export a dummy object during tests, otherwise connect to real Redis
-// Add setex, get, and del to the mock object
+// 2. Only attach TLS if the URL requires it (e.g., Upstash cloud uses rediss://)
+if (process.env.REDIS_URL && process.env.REDIS_URL.startsWith("rediss://")) {
+  redisOptions.tls = {};
+}
+
+// 3. Export a dummy object during tests, otherwise connect to real Redis
 export const connection =
   process.env.NODE_ENV === "test"
     ? {
@@ -24,7 +27,4 @@ export const connection =
         get: async () => null,
         del: async () => 1,
       }
-    : new Redis(process.env.REDIS_URL, {
-        maxRetriesPerRequest: null,
-        tls: {}, // Force TLS connection for Upstash
-      });
+    : new Redis(process.env.REDIS_URL, redisOptions);

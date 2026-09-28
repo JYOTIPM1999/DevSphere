@@ -1,0 +1,37 @@
+# version: "3.8"
+services:
+  app:
+    build: .
+    ports:
+      - "4000:4000"
+    # 1. Pulls in all your Cloudinary, SMTP, Google, and VAPID keys automatically
+    env_file:
+      - .env
+    environment:
+      - PORT=3000
+      - NODE_ENV=development
+      # 2. Overrides the cloud URIs in your .env so Docker uses the local containers
+      - REDIS_URL=redis://redis:6379
+      - MONGO_URI=mongodb://mongo:27017/devsphere
+
+    depends_on:
+      - redis
+      - mongo
+    volumes:
+      # Map local logs folder so you can read Winston logs on your host machine
+      - ./logs:/usr/src/app/logs
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  mongo:
+    image: mongo:6
+    ports:
+      - "27017:27017"
+    volumes:
+      # Persist database data locally even if the container restarts
+      - mongo_data:/data/db
+
+volumes:
+  mongo_data:
