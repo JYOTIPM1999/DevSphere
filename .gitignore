@@ -3,5 +3,4 @@
 upload/videos/*.mp4
 logs
 tests
-.env.docker.env.docker
 .env.docker
