@@ -17,11 +17,16 @@ A production-grade, full-stack social platform backend built with Node.js, Expre
 - **Real-time & Push:** Socket.io, Web Push
 - **Testing & CI/CD:** Jest, Supertest, GitHub Actions (Automated testing & deployments to Render)
 
-## 🚀 Quick Start
+## 🐳 Quick Start (Docker)
 
-1. Clone the repo and `npm install`
-2. Create a `.env` file (see `.env.example`)
-3. `npm run dev`
+The easiest way to run DevSphere locally is using Docker. This spins up the Node.js API, a local Redis instance (for background queues and socket presence), and a local MongoDB instance.
+
+1. Clone the repo: `git clone https://github.com/your-username/DevSphere.git`
+2. Create your environment file: `cp .env.example .env` (Add your JWT/Cloudinary secrets)
+3. Boot the infrastructure: `docker-compose up --build -d`
+4. Seed the database: `docker-compose exec app npm run seed`
+
+The REST API will be available at `http://localhost:3000`, the GraphQL sandbox at `http://localhost:3000/graphql`, and the OpenAPI docs at `http://localhost:3000/api-docs`.
 
 ## 📊 Performance & Load Testing
 
