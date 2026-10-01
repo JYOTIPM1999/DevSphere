@@ -37,6 +37,7 @@ jobs:
       - name: Run Linter
         # The --if-present flag skips this if you haven't set up a "lint" script in package.json yet
         run: npm run lint --if-present
+
       - name: Run Test Suite
         run: npm test
 
